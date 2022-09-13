@@ -1,45 +1,47 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
+import axios from "axios";
 
-export const useFetch = (url, _options) => {
-  const [data, setData] = useState(null);
-  const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState(null);
+const useFetch = (url) => {
+  const [fetchedData, setFetchedData] = useState({
+    data: [],
+    isLoading: true,
+    error: false,
+  });
 
-  const options = useRef(_options).current;
+  const cancelTokenSource = axios.CancelToken.source();
+  const fetchData = useCallback(async () => {
+    try {
+      const response = await axios.get(url);
+      const data = await response.data;
+      if (data) {
+        // console.log(data)
+        setFetchedData({
+          data: data.items ? data.items : data,
+          isLoading: false,
+          error: false,
+        });
+      }
+    } catch (err) {
+      if (axios.isCancel(err)) {
+        console.log("fetching data aborted", err);
+      } else {
+        console.log("error occured", err);
+      }
+      setFetchedData({
+        data: [],
+        isLoading: false,
+        error: true,
+      });
+    }
+  }, [url]);
 
   useEffect(() => {
-    console.log(options);
-    const controller = new AbortController();
-
-    const fetchData = async () => {
-      setIsPending(true);
-      try {
-        const res = await fetch(url, { signal: controller.signal });
-        if (!res.ok) {
-          throw new Error(res.statusText());
-        }
-        const json = await res.json();
-        setIsPending(false);
-        setData(json);
-        setError(null);
-      } catch (err) {
-        if (err.name === "AbortError") {
-          console.log("Fetch has been aborted");
-        } else {
-          setIsPending(false);
-          setError("Failed fetch");
-          console.log(err.message);
-        }
-      }
-    };
-
     fetchData();
+    return () => cancelTokenSource.cancel();
+  }, [url, fetchData]);
 
-    return () => {
-      controller.abort();
-    };
-  }, [url, options]);
-
-  return { data, isPending, error };
+  const { data, isLoading, error } = fetchedData;
+  return { data, isLoading, error };
 };
 
+export default useFetch;
