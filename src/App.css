@@ -40,4 +40,15 @@
   color: #888;
 }
 
+.posts:nth-child(odd) {
+  background-color: #6c4750;
+}
 
+.description {
+  font-size: 1.5rem;
+}
+
+.title {
+  text-decoration: underline;
+  font-size: 2rem;
+}
